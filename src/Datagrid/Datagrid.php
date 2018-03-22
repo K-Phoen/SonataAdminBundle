@@ -135,12 +135,31 @@ class Datagrid implements DatagridInterface
 
         $data = $this->form->getData();
 
+        $originalWhereConditions = $this->query->getDQLPart('where');
+        $this->query->resetDQLPart('where');
+
         foreach ($this->getFilters() as $name => $filter) {
             $this->values[$name] = isset($this->values[$name]) ? $this->values[$name] : null;
             $filterFormName = $filter->getFormName();
             if (isset($this->values[$filterFormName]['value']) && $this->values[$filterFormName]['value'] !== '') {
                 $filter->apply($this->query, $data[$filterFormName]);
             }
+        }
+
+        $filterWhereConditions = $this->query->getDQLPart('where');
+        $this->query->resetDQLPart('where');
+        $and = $this->query->expr()->andX();
+
+        if ($originalWhereConditions) {
+            $and->add($originalWhereConditions);
+        }
+
+        if ($filterWhereConditions) {
+            $and->add($filterWhereConditions);
+        }
+
+        if ($originalWhereConditions || $filterWhereConditions) {
+            $this->query->where($and);
         }
 
         if (isset($this->values['_sort_by'])) {
